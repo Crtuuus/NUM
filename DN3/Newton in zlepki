@@ -1,0 +1,119 @@
+function [c, D] = newton_coef(x, f)
+% NEWTON_COEF   izračuna Newtonove koeficiente in tabelo deljenih dif.
+%   x: vektor vozlišč (dolžina n)
+%   f: vektor vrednosti f(x) (dolžina n)
+% Izhod:
+%   c: vektor Newtonovih koeficientov (dolžina n)
+%   D: matrika deljenih dif (n×n), kjer D(1,i)=f(x_i)
+    n = numel(x);
+    D = zeros(n,n);
+    D(1,:) = f(:).';
+    for j = 2:n
+        for i = j:n
+            D(j,i) = (D(j-1,i) - D(j-1,i-1)) / (x(i) - x(i-j+1));
+        end
+    end
+    c = diag(D).';  % koeficienti c_0 ... c_{n-1}
+end
+
+function p = newton_eval(c, x_nodes, xx)
+% NEWTON_EVAL   vrednotenje Newtonovega polinoma
+%   c: koeficienti iz newton_coef
+%   x_nodes: vozlišča x
+%   xx: točke, kjer želite p(xx)
+    n = numel(c);
+    p = c(n) * ones(size(xx));
+    for j = n-1:-1:1
+        p = p .* (xx - x_nodes(j)) + c(j);
+    end
+end
+
+%--- primer uporabe za (a) ---
+x  = [0 0.1 0.5 0.6 0.8 1 1.2 1.8 2];    % vaše vozlišča
+f  = sin(7*x);
+A  = linspace(0,2,1000);                 % Λ
+[c, D] = newton_coef(x,f);
+pA = newton_eval(c, x, A);
+err_inf = max(abs(sin(7*A) - pA));
+fprintf('(a) ||f - p||_{∞,Λ} = %.3e\n', err_inf);
+function [z, dz] = zlepek(x, f, df, A)
+% ZLEPEK   C¹-spoj dveh Newtonovih polinomov stopnje k
+%   x  = [x0 ... x_{2k+1}] (dolžina 2k+2)
+%   f  = f(x)         (dolžina 2k+2)
+%   df = f'(x)        (dolžina 2k+2)
+%   A  = poljubne točke, kjer želimo zlepek
+%
+% Vrne:
+%   z(A) in dz(A) – vrednosti zlepljenega polinoma in njegove odv.
+    n = numel(x);
+    k = n/2 - 1;              % stopnja vsakega izmed dveh polinomov
+
+    % LEVI polinom p1 stopnje k: uporabi vozlišča x(1:k+1), 
+    % pogoje p1(x_i)=f_i za i=1..k+1, plus p1'(x_{k+2})=df(k+2)
+    X1 = x(1:k+1);
+    F1 = f(1:k+1);
+    % dodatno pogoj za odvod v x_{k+2}
+    X1p = x(k+2);
+    F1p = df(k+2);
+
+    % DESNI polinom p2 stopnje k: vozlišča x(k+2:end)
+    X2 = x(k+2:end);
+    F2 = f(k+2:end);
+    % pogoj za odvod v x_{k+2} spodaj, da se ujema:
+    X2p = X1p;
+    F2p = F1p;
+
+    % Sestavimo sistem za koeficente a1 (dim k+1) polinoma p1:
+    % Vandermonde + odvodna vrstica
+    V1 = zeros(k+2, k+1);
+    for i = 1:k+1
+        V1(i,:) = X1(i).^(0:k);
+    end
+    % odvodna vrstica:
+    V1(end,:) = (0:k) .* X1p.^( (0:k)-1 );
+    b1 = [F1(:); F1p];
+
+    % Podobno za p2:
+    V2 = zeros(k+2, k+1);
+    for i = 1:k+1
+        V2(i,:) = X2(i).^(0:k);
+    end
+    V2(end,:) = (0:k) .* X2p.^( (0:k)-1 );
+    b2 = [F2(:); F2p];
+
+    a1 = V1 \ b1;
+    a2 = V2 \ b2;
+
+    % zdaj vrednotenje:
+    z  = zeros(size(A));
+    dz = zeros(size(A));
+    for j = 1:numel(A)
+        if A(j) <= X1p
+            z(j)  = polyval(flip(a1), A(j));
+            dz(j) = polyval(flip((0:k).*a1), A(j));
+        else
+            z(j)  = polyval(flip(a2), A(j));
+            dz(j) = polyval(flip((0:k).*a2), A(j));
+        end
+    end
+end
+
+%--- risanje skupaj s f'(x) za primer ---
+[x,f,df] = deal([0 0.1 0.5 0.6 0.8 1 1.2 1.8 2], sin(7*x), 7*cos(7*x));
+A = linspace(0,2,500);
+[z, dz] = zlepek(x,f,df,A);
+
+figure; hold on;
+plot(A, dz, 'r-', 'LineWidth',1.5);
+plot(A, 7*cos(7*A), 'k--');
+legend('z''(x)','f''(x)','Location','Best');
+title('Primerjava odvodov');
+xlabel('x'); ylabel('odvod');
+grid on;
+disp(D)
+v1 = max( abs(D(:)) );     % za levi p1
+[~, D2]   = newton_coef(X2, F2);
+v2 = max( abs(D2(:)) );    % za desni p2
+fprintf('(d) |v1 - v2| = %.3e\n', abs(v1-v2));
+err_z = max( abs(sin(7*A) - z) );
+fprintf('(e) ||f - z||_{∞,Λ} = %.3e\n', err_z);
