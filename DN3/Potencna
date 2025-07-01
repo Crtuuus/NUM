@@ -1,0 +1,42 @@
+% RUN_POWER    Demonstracija za nalogo z A in Hotellingovo deflacijo
+
+clearvars; close all;
+
+% Podatki
+A = [5 1.4 4 3;
+     1.4 3 7 1;
+     4 7 1 0;
+     3 1 0 2];
+x0      = [1;0;0;0];
+tol     = 1e-10;
+max_k   = 100;
+
+%% (a) Prvih 5 korakov power metode
+% ročno brez zgodnjega ustavljanja, izpis Rayleighevih kvocientov
+x = x0 / norm(x0);
+fprintf('(a) Power iteracije za A, z zacetnim x0 = (1,0,0,0)''\n');
+fprintf(' k    Rayleigh λ^{(k)}\n');
+for k = 1:5
+    lambda_k = x'*(A*x);
+    fprintf('%2d    %12.6f\n', k, lambda_k);
+    y = A*x;
+    x = y / norm(y);
+end
+fprintf('\nPribližek po 5 korakih: λ ≈ %.6f\n\n', lambda_k);
+
+%% (b) Razlika med prvim in cetvrtim korakom
+lambda1 =  (x0/norm(x0))'*(A*(x0/norm(x0)));
+% po vašem izračunu k=4 smo v zanki izračunali lambda_4 kot lambda_k (k=4)
+lambda4 = lambda_k;  % za ilustracijo
+fprintf('(b) |λ^{(1)} - λ^{(4)}| ≈ %.6f\n\n', abs(lambda1 - lambda4));
+
+%% (c) Hotellingova deflacija za drugo lastno vrednost
+[mu1, v1, ~] = potencia(A, x0, tol, max_k);   % λ1, v1
+A2 = A - mu1*(v1*v1');                        % deflacija
+[mu2, v2, ~] = potencia(A2, x0, tol, max_k);  % λ2, v2
+fprintf('(c) Druga lastna vrednost λ2 ≈ %.6f\n\n', mu2);
+
+%% (d) Norma vsote dveh lastnih vektorjev
+% v1 in v2 naj bosta enotska (potencia ju že normira)
+n12 = norm(v1 + v2);
+fprintf('(d) ||v1 + v2||_2 ≈ %.12f\n', n12);
