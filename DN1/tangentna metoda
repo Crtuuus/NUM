@@ -1,0 +1,24 @@
+function [X, k] = tangenta(f, df, x0, tol, max_koraki)
+    % tangenta: Newton–Raphsonova metoda “od zadaj”
+    % Vhod:
+    %   f            – handle funkcije
+    %   df           – handle odvoda f
+    %   x0           – začetni približek
+    %   tol          – toleranca za rel. razliko
+    %   max_koraki   – največje dovoljeno število korakov
+    %
+    % Izhod:
+    %   X            – vektor vseh x_n; X(1)=x0, X(end)=x_končni
+    %   k            – število opravljenih korakov (>=1)
+    
+    X = zeros(1, max_koraki+1);
+    X(1) = x0;
+    for k = 1:max_koraki
+        X(k+1) = X(k) - f(X(k)) / df(X(k));
+        if abs((X(k+1) - X(k)) / X(k)) < tol
+            X = X(1:k+1);
+            return
+        end
+    end
+    % če ne dosežemo tolerance, vrnemo vse korake
+end
