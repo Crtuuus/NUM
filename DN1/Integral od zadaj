@@ -1,0 +1,25 @@
+% nastavitev
+N = 120;
+I = zeros(1,N+1);    % I(k+1) bo vseboval I_k
+I(N+1) = 0;          % približek I_N ≈ 0
+
+% zanka od N nazaj do 1
+for n = N:-1:1
+    I(n) = ((-1)^(n+1) - I(n+1)) / n;
+end
+
+% (a) približek I_10
+I10 = I(11);
+
+% (b) vsota I_0 + I_2 + I_4 + … + I_100
+sumEven = sum( I(1:2:101) );
+
+% (c) indeks n, za katerega je I_n najbližje 0.2
+[~, idx] = min( abs(I - 0.2) );
+n_closest = idx - 1;    % ker I(k+1)=I_k
+
+% izpis
+fprintf('I_10 ≈ %.8f\n', I10)
+fprintf('∑_{k=0..50} I_{2k} ≈ %.8f\n', sumEven)
+fprintf('I_%d je najbližje 0.2 (I_%d ≈ %.8f)\n', ...
+        n_closest, n_closest, I(idx))
