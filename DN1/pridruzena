@@ -1,0 +1,37 @@
+%--- podamo polinom (koeficienti od x^5 do x^0) ---
+p = [2  -4  0   2  -0.5   0];
+
+% (a) največji element matrike C_p^5
+Cp    = pridruzena(p);
+Cp5   = Cp^5;
+maxEl = max( Cp5(:) );
+fprintf('(a) največji element C_p^5 = %.0f\n', maxEl);
+
+
+% (b) ničle polinoma so lastne vrednosti C_p
+lambda = eig(Cp);
+lambda = sort(lambda);
+d      = abs( diff(lambda) );
+minD   = min(d);
+fprintf('(b) najmanjša razdalja med sosednjimi ničlami ≈ %.15f\n', minD);
+
+
+% (c) q(x) = x * p'(x)
+pprime = polyder(p);      
+q      = conv(pprime, [1 0]);   % pomnožimo p' s x
+Cp     = pridruzena(p);          
+Cq     = pridruzena(q);
+u      = ones(length(Cp),1);     % vektor enic dimenzije matrik
+v      = (Cp + Cq)*u;
+n2     = norm(v,2);
+fprintf('(c) ||v||_2 ≈ %.12f\n', n2);
+
+function C = pridruzena(p)
+    % p: vektor koeficientov [a_n, a_{n-1}, ..., a_0], a_n ~= 0
+    n = length(p) - 1;        % stopnja polinoma
+    C = zeros(n);             % rezerviramo n×n matriko
+    % prva vrstica: negativni koeficienti (brez vodilnega) deljeni z a_n
+    C(1, :) = -p(2:end) / p(1);
+    % pod diagonalo enote
+    C(2:end, 1:end-1) = eye(n-1);
+end
