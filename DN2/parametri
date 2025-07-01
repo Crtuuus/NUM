@@ -1,0 +1,74 @@
+%—– naloži točke
+load points.mat   % predpostavljamo, da je notri P ∈ R^{M×3}
+x = P(:,1);  y = P(:,2);  z = P(:,3);
+
+%—– zgradi matriko in vektor
+A = [ x.^2, y.^2, z.^2 ];     % linearni model α x^2 + β y^2 + γ z^2 = 1
+b_vec = ones(size(x));
+
+%—– (a) QR-razcep in rešitev najmanjših kvadratov
+[Q,R,z_hat] = Householder(A, b_vec);
+u = R(1:3,1:3) \ z_hat(1:3);     % [α; β; γ]
+alpha = u(1);  beta = u(2);  gamma = u(3);
+% izračun “polosni” a, b, c
+a =  1/sqrt(alpha);
+b =  1/sqrt(beta);
+c =  1/sqrt(gamma);
+
+fprintf('(a) α=%.6g, β=%.6g, γ=%.6g\n', alpha, beta, gamma)
+fprintf('    -> polosni: a=%.6g, b=%.6g, c=%.6g\n\n', a,b,c)
+
+%—– (b) 2-norma Q
+fprintf('(b) ||Q||_2 = %.6g (pričakujemo 1, saj je Q ortogonalna)\n\n', norm(Q,2))
+
+%—– (c) mreža na s∈[-π/2,π/2], t∈[-π,π], 30×30
+ns = 30; nt = 30;
+[s_grid, t_grid] = meshgrid( linspace(-pi/2,pi/2,ns), ...
+                             linspace(-pi,   pi,   nt) );
+Xg = a*cos(s_grid).*cos(t_grid);
+Yg = b*cos(s_grid).*sin(t_grid);
+Zg = c*sin(s_grid);
+
+meshPts = [Xg(:), Yg(:), Zg(:)];
+
+% izračunaj najbližjo razdaljo do prve merjene točke P(1,:)
+dists = sqrt( sum( (meshPts - P(1,:)).^2, 2 ) );
+minDist = min(dists);
+fprintf('(c) najmanjša razdalja iz mreže do prve meritve = %.6g\n', minDist)
+
+%—– za vizualno preverbo:
+figure(1), clf
+scatter3(x,y,z, 5, 'k','filled'), hold on
+surf(Xg, Yg, Zg, 'FaceAlpha',0.3,'EdgeColor','none')
+axis equal, grid on
+xlabel('x'), ylabel('y'), zlabel('z')
+title('Merjene točke in prilegajoči seferoid')
+
+function [Q,R,z] = Householder(A,b)
+% HOUSEHOLDER   QR-razcep z aplikacijo na A in b
+%   [Q,R,z] = Householder(A,b) vrne
+%     Q ∈ R^{m×m} ortonormalno,
+%     R ∈ R^{m×n} zgornjo-trikotno (prvi n stolpcev nepravilni, spodaj ničle),
+%     z = Qᵀ*b
+%
+[m,n] = size(A);
+Q = eye(m);
+R = A;
+z = b;
+
+for k = 1:n
+    % ekstraktiraj spodnji del stolpca
+    x = R(k:m, k);
+    e1 = zeros(size(x));  e1(1) = norm(x);
+    v = x - e1;
+    if norm(v) > eps
+        v = v / norm(v);
+        H = eye(length(x)) - 2*(v*v');
+        % aplikacija H na preostale bloke R in z
+        R(k:m, :) = H * R(k:m, :);
+        z(k:m)     = H * z(k:m);
+        % posodobitev Q (da dobimo celotno Q)
+        Q(:, k:m)  = Q(:, k:m) * blkdiag(eye(k-1), H);
+    end
+end
+end
