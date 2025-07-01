@@ -1,0 +1,78 @@
+% Podatki
+years = (2007:2022)';
+sales = [122;139;172;296;472;680;969;1244;1423;1495;1536;1556;1540;1351;1433;1395];
+
+% (i) zgradimo A in b
+t = years - 2007;                     
+A = [ ones(size(t)), ...
+      t, ...
+      t.^2, ...
+      t.^3, ...
+      exp(t/10) ];
+b = sales;
+
+% pokličemo Givens
+[R, z] = Givens(A, b);
+
+% rešimo R*c = z
+c = R \ z;
+
+%% (a) Infinity-norma b
+bnorm_inf = norm(b, Inf);
+fprintf('(a) ||b||_\\infty = %g\n', bnorm_inf)
+
+%% (b) Frobenius-norma A
+Anorm_F = norm(A, 'fro');
+fprintf('(b) ||A||_F = %g\n\n', Anorm_F)
+
+%% (c) Napoved za leto 2025 (t = 2025-2007 = 18)
+t2025 = 2025 - 2007;
+f2025 = c(1) + c(2)*t2025 + c(3)*t2025^2 + c(4)*t2025^3 + c(5)*exp(t2025/10);
+fprintf('(c) Napoved prodaje za 2025: f(2025) ≈ %.4f (v milijonih)\n\n', f2025)
+
+%% (d) 2-norma R^(i) po posamezni rotaciji
+% Givensovske rotacije so ortonormalne, zato za vsako i velja
+% ||R^(i)||_2 = ||A||_2 (2-norma ne spremeni pod ortonormalno transformacijo)
+Anorm_2 = norm(A,2);
+fprintf(['(d) Za vse vmesne matrice R^(i) je ||R^(i)||_2 '...
+         'enak ||A||_2 ≈ %g.\n\n'], Anorm_2)
+
+%% (e) Najboljši skalarski a za v_a = 1000*[a;a;a;a;a]
+% Minimizaramo ||c - 1000*[a;...;a]||_2 => 
+% odvod = 0 => a = (sum c_i) / (1000 * 5)
+a_opt = sum(c) / (1000*length(c));
+% minimalna norma
+v_opt = 1000 * a_opt * ones(size(c));
+min_norm = norm(c - v_opt, 2);
+fprintf('(e) Optimalen a = %.6g, pri katerem je ||c - v_a||_2 minimalna = %.6g\n', ...
+        a_opt, min_norm)
+
+function [R, z] = Givens(A, b)
+    % GIVENS   QR-razcep z Givensovimi rotacijami
+    % [R,z] = Givens(A,b) vrne R in z=Q'*b, 
+    % pri čemer A je m×n, b je m×1.
+    
+    [m,n] = size(A);
+    % sestavimo razširjeno matriko
+    M = [A, b];      % dimenzije m×(n+1)
+    
+    for j = 1:n
+        for i = m:-1:(j+1)
+            % želimo M(i,j)=0 z Givensovo rotacijo med vrsticama i-1 in i
+            a = M(i-1,j);
+            c = M(i,j);
+            if c ~= 0
+                r = hypot(a, c);
+                G = [a/r,  c/r;
+                    -c/r, a/r];
+                % apliciramo G na vrsti i-1 in i, stolpce j:end
+                M([i-1,i], j:end) = G * M([i-1,i], j:end);
+            end
+        end
+    end
+    
+    % sedaj je zgornji trikotnik R v prvih n stolpcih razširjene M
+    R = M(1:n, 1:n);
+    % in z je prvih n komponent zadnjega stolpca
+    z = M(1:n, end);
+end
